@@ -42,3 +42,9 @@ func ExtractLinksFrom(htmlBody io.Reader) ([]*url.URL, error) {
 
 	return links, nil
 }
+
+func FilterURLsBySubdomain(domain *url.URL, links []*url.URL) []*url.URL {
+	var filteredURLs []*url.URL
+
+	return filteredURLs
+}

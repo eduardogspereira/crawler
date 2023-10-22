@@ -10,12 +10,9 @@ import (
 )
 
 func TestExtractLinksFrom_Success(t *testing.T) {
-	linkA, err := url.Parse("https://a.com")
-	assert.NoError(t, err)
-	linkB, err := url.Parse("https://b.com")
-	assert.NoError(t, err)
-	linkC, err := url.Parse("https://c.com")
-	assert.NoError(t, err)
+	linkA := makeURLFor(t, "https://a.com")
+	linkB := makeURLFor(t, "https://b.com")
+	linkC := makeURLFor(t, "https://c.com")
 	htmlContent := fmt.Sprintf(`
 	<a href="%s"/>
 	<!DOCTYPE html>
@@ -52,10 +49,8 @@ func TestExtractLinksFrom_NoLinks_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_InvalidHTML_Success(t *testing.T) {
-	linkA, err := url.Parse("https://a.com")
-	assert.NoError(t, err)
-	linkB, err := url.Parse("https://b.com")
-	assert.NoError(t, err)
+	linkA := makeURLFor(t, "https://a.com")
+	linkB := makeURLFor(t, "https://b.com")
 	htmlContent := fmt.Sprintf(`
 	<a href="%s"/>
 	>>>aDFSAFAS.>>>asd<a href="%s"/>fsa>!23213
@@ -88,8 +83,7 @@ func TestExtractLinksFrom_LinksWithNoHref_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
-	linkA, err := url.Parse("/a")
-	assert.NoError(t, err)
+	linkA := makeURLFor(t, "/a")
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -105,8 +99,7 @@ func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_LinksWithAnchor_Success(t *testing.T) {
-	linkA, err := url.Parse("/a#section-51")
-	assert.NoError(t, err)
+	linkA := makeURLFor(t, "/a#section-51")
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -152,4 +145,14 @@ func TestExtractLinksFrom_TextAsset_Success(t *testing.T) {
 	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
+}
+
+func TestFilterURLsBySubdomain_Success(t *testing.T) {
+
+}
+
+func makeURLFor(t *testing.T, rawURL string) *url.URL {
+	link, err := url.Parse(rawURL)
+	assert.NoError(t, err)
+	return link
 }
