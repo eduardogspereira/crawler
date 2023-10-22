@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-func TestGetLinksFrom_Success(t *testing.T) {
+func TestExtractLinksFrom_Success(t *testing.T) {
 	linkA := "https://a.com"
 	linkB := "https://b.com"
 	linkC := "https://c.com"
@@ -26,14 +26,14 @@ func TestGetLinksFrom_Success(t *testing.T) {
 `, linkA, linkB, linkC)
 
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Contains(t, links, linkA)
 	assert.Contains(t, links, linkB)
 	assert.Contains(t, links, linkC)
 }
 
-func TestGetLinksFrom_NoLinks_Success(t *testing.T) {
+func TestExtractLinksFrom_NoLinks_Success(t *testing.T) {
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -42,12 +42,12 @@ func TestGetLinksFrom_NoLinks_Success(t *testing.T) {
 `)
 
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
 }
 
-func TestGetLinksFrom_InvalidHTML_Success(t *testing.T) {
+func TestExtractLinksFrom_InvalidHTML_Success(t *testing.T) {
 	linkA := "https://a.com"
 	linkB := "https://b.com"
 	htmlContent := fmt.Sprintf(`
@@ -56,13 +56,13 @@ func TestGetLinksFrom_InvalidHTML_Success(t *testing.T) {
 `, linkA, linkB)
 
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Contains(t, links, linkA)
 	assert.Contains(t, links, linkB)
 }
 
-func TestGetLinksFrom_LinksWithNoHref_Success(t *testing.T) {
+func TestExtractLinksFrom_LinksWithNoHref_Success(t *testing.T) {
 	htmlContent := fmt.Sprintf(`
 	<a/>
 	<!DOCTYPE html>
@@ -76,12 +76,12 @@ func TestGetLinksFrom_LinksWithNoHref_Success(t *testing.T) {
 	</html>
 `)
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
 }
 
-func TestGetLinksFrom_RelativeLinks_Success(t *testing.T) {
+func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
 	linkA := "/a"
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -92,12 +92,12 @@ func TestGetLinksFrom_RelativeLinks_Success(t *testing.T) {
 	</html>
 `, linkA)
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Contains(t, links, linkA)
 }
 
-func TestGetLinksFrom_LinksWithAnchor_Success(t *testing.T) {
+func TestExtractLinksFrom_LinksWithAnchor_Success(t *testing.T) {
 	linkA := "/a#section-51"
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
@@ -108,12 +108,12 @@ func TestGetLinksFrom_LinksWithAnchor_Success(t *testing.T) {
 	</html>
 `, linkA)
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Contains(t, links, linkA)
 }
 
-func TestGetLinksFrom_CSSAsset_Success(t *testing.T) {
+func TestExtractLinksFrom_CSSAsset_Success(t *testing.T) {
 	htmlContent := `
 	.flagContent {
 		width: auto;
@@ -123,25 +123,25 @@ func TestGetLinksFrom_CSSAsset_Success(t *testing.T) {
 	}
 `
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
 }
 
-func TestGetLinksFrom_JSAsset_Success(t *testing.T) {
+func TestExtractLinksFrom_JSAsset_Success(t *testing.T) {
 	htmlContent := `
 	const random = () => 'random'
 `
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
 }
 
-func TestGetLinksFrom_TextAsset_Success(t *testing.T) {
+func TestExtractLinksFrom_TextAsset_Success(t *testing.T) {
 	htmlContent := "random text document"
 	r := strings.NewReader(htmlContent)
-	links, err := GetLinksFrom(io.NopCloser(r))
+	links, err := ExtractLinksFrom(io.NopCloser(r))
 	assert.NoError(t, err)
 	assert.Empty(t, links)
 }

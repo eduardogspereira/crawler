@@ -10,7 +10,7 @@ const (
 	anchorHrefProperty = "href"
 )
 
-func GetLinksFrom(htmlBody io.Reader) ([]string, error) {
+func ExtractLinksFrom(htmlBody io.Reader) ([]string, error) {
 	doc, err := html.Parse(htmlBody)
 	if err != nil {
 		return nil, err
