@@ -11,36 +11,31 @@ const (
 	anchorHrefProperty = "href"
 )
 
-func ExtractLinksFrom(htmlBody io.Reader) ([]*url.URL, error) {
-	doc, err := html.Parse(htmlBody)
-	if err != nil {
-		return nil, err
-	}
-
+func ExtractLinksFrom(htmlBody io.Reader) []*url.URL {
 	var links []*url.URL
 
-	var extractLinksFromNode func(n *html.Node)
-	extractLinksFromNode = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == anchorTag {
-			for _, a := range n.Attr {
-				if a.Key == anchorHrefProperty {
-					u, err := url.Parse(a.Val)
-					if err != nil {
-						continue
+	tokenizer := html.NewTokenizer(htmlBody)
+	for {
+		tokenType := tokenizer.Next()
+		switch tokenType {
+		case html.ErrorToken:
+			return links
+		case html.StartTagToken, html.SelfClosingTagToken:
+			token := tokenizer.Token()
+			if token.Data == anchorTag {
+				for _, attr := range token.Attr {
+					if attr.Key == anchorHrefProperty {
+						u, err := url.Parse(attr.Val)
+						if err != nil {
+							continue
+						}
+						links = append(links, u)
 					}
-
-					links = append(links, u)
 				}
 			}
 		}
-
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			extractLinksFromNode(c)
-		}
 	}
-	extractLinksFromNode(doc)
 
-	return links, nil
 }
 
 func FilterURLsBySubdomain(domain *url.URL, links []*url.URL) []*url.URL {

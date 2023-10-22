@@ -27,8 +27,7 @@ func TestExtractLinksFrom_Success(t *testing.T) {
 `, linkA, linkB, linkC)
 
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Contains(t, links, linkA)
 	assert.Contains(t, links, linkB)
 	assert.Contains(t, links, linkC)
@@ -36,15 +35,13 @@ func TestExtractLinksFrom_Success(t *testing.T) {
 
 func TestExtractLinksFrom_NoLinks_Success(t *testing.T) {
 	htmlContent := fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-		<body></body>
-	</html>
-`)
+		<!DOCTYPE html>
+		<html>
+			<body></body>
+		</html>`)
 
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Empty(t, links)
 }
 
@@ -57,93 +54,80 @@ func TestExtractLinksFrom_InvalidHTML_Success(t *testing.T) {
 `, linkA, linkB)
 
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Contains(t, links, linkA)
 	assert.Contains(t, links, linkB)
 }
 
 func TestExtractLinksFrom_LinksWithNoHref_Success(t *testing.T) {
 	htmlContent := fmt.Sprintf(`
-	<a/>
-	<!DOCTYPE html>
-	<html>
-			<div>
-				<div><a/></div>
-			</div>
-		<body>
-			<a/>
-		</body>
-	</html>
-`)
+		<a/>
+		<!DOCTYPE html>
+		<html>
+				<div>
+					<div><a/></div>
+				</div>
+			<body>
+				<a/>
+			</body>
+		</html>`)
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Empty(t, links)
 }
 
 func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
 	linkA := makeURLFor(t, "/a")
 	htmlContent := fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-		<body>
-			<a href="%s"/>
-		</body>
-	</html>
-`, linkA)
+		<!DOCTYPE html>
+		<html>
+			<body>
+				<a href="%s"/>
+			</body>
+		</html>`, linkA)
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Contains(t, links, linkA)
 }
 
 func TestExtractLinksFrom_LinksWithAnchor_Success(t *testing.T) {
 	linkA := makeURLFor(t, "/a#section-51")
 	htmlContent := fmt.Sprintf(`
-	<!DOCTYPE html>
-	<html>
-		<body>
-			<a href="%s"/>
-		</body>
-	</html>
-`, linkA)
+		<!DOCTYPE html>
+		<html>
+			<body>
+				<a href="%s"/>
+			</body>
+		</html>`, linkA)
 	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Contains(t, links, linkA)
 }
 
 func TestExtractLinksFrom_CSSAsset_Success(t *testing.T) {
-	htmlContent := `
+	cssContent := `
 	.flagContent {
 		width: auto;
 		white-space: nowrap;
 		display: inline-block;
 		font-size: 0
-	}
-`
-	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	}`
+	r := strings.NewReader(cssContent)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Empty(t, links)
 }
 
 func TestExtractLinksFrom_JSAsset_Success(t *testing.T) {
-	htmlContent := `
-	const random = () => 'random'
-`
-	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	jsContent := `const random = () => 'random'`
+	r := strings.NewReader(jsContent)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Empty(t, links)
 }
 
 func TestExtractLinksFrom_TextAsset_Success(t *testing.T) {
-	htmlContent := "random text document"
-	r := strings.NewReader(htmlContent)
-	links, err := ExtractLinksFrom(io.NopCloser(r))
-	assert.NoError(t, err)
+	textContent := "random text document"
+	r := strings.NewReader(textContent)
+	links := ExtractLinksFrom(io.NopCloser(r))
 	assert.Empty(t, links)
 }
 
