@@ -4,14 +4,18 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io"
+	"net/url"
 	"strings"
 	"testing"
 )
 
 func TestExtractLinksFrom_Success(t *testing.T) {
-	linkA := "https://a.com"
-	linkB := "https://b.com"
-	linkC := "https://c.com"
+	linkA, err := url.Parse("https://a.com")
+	assert.NoError(t, err)
+	linkB, err := url.Parse("https://b.com")
+	assert.NoError(t, err)
+	linkC, err := url.Parse("https://c.com")
+	assert.NoError(t, err)
 	htmlContent := fmt.Sprintf(`
 	<a href="%s"/>
 	<!DOCTYPE html>
@@ -48,8 +52,10 @@ func TestExtractLinksFrom_NoLinks_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_InvalidHTML_Success(t *testing.T) {
-	linkA := "https://a.com"
-	linkB := "https://b.com"
+	linkA, err := url.Parse("https://a.com")
+	assert.NoError(t, err)
+	linkB, err := url.Parse("https://b.com")
+	assert.NoError(t, err)
 	htmlContent := fmt.Sprintf(`
 	<a href="%s"/>
 	>>>aDFSAFAS.>>>asd<a href="%s"/>fsa>!23213
@@ -82,7 +88,8 @@ func TestExtractLinksFrom_LinksWithNoHref_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
-	linkA := "/a"
+	linkA, err := url.Parse("/a")
+	assert.NoError(t, err)
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
@@ -98,7 +105,8 @@ func TestExtractLinksFrom_RelativeLinks_Success(t *testing.T) {
 }
 
 func TestExtractLinksFrom_LinksWithAnchor_Success(t *testing.T) {
-	linkA := "/a#section-51"
+	linkA, err := url.Parse("/a#section-51")
+	assert.NoError(t, err)
 	htmlContent := fmt.Sprintf(`
 	<!DOCTYPE html>
 	<html>
