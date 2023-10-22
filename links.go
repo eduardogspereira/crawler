@@ -46,5 +46,16 @@ func ExtractLinksFrom(htmlBody io.Reader) ([]*url.URL, error) {
 func FilterURLsBySubdomain(domain *url.URL, links []*url.URL) []*url.URL {
 	var filteredURLs []*url.URL
 
+	for _, link := range links {
+		if link.Host == "" {
+			filteredURLs = append(filteredURLs, domain.ResolveReference(link))
+			continue
+		}
+
+		if domain.Host == link.Host {
+			filteredURLs = append(filteredURLs, link)
+		}
+	}
+
 	return filteredURLs
 }

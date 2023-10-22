@@ -148,7 +148,27 @@ func TestExtractLinksFrom_TextAsset_Success(t *testing.T) {
 }
 
 func TestFilterURLsBySubdomain_Success(t *testing.T) {
+	linkA := makeURLFor(t, "https://abc.com/path-a")
+	linkB := makeURLFor(t, "https://bca.com/path-d")
+	linkC := makeURLFor(t, "https://abc.com/path-c")
 
+	startURL := makeURLFor(t, "https://abc.com/path-j")
+
+	links := FilterURLsBySubdomain(startURL, []*url.URL{linkA, linkB, linkC})
+	assert.Contains(t, links, linkA)
+	assert.Contains(t, links, linkC)
+}
+
+func TestFilterURLsBySubdomain_RelativeLinks_Success(t *testing.T) {
+	linkA := makeURLFor(t, "https://abc.com/path-a")
+	linkB := makeURLFor(t, "https://bca.com/path-d")
+	linkC := makeURLFor(t, "/path-c")
+
+	startURL := makeURLFor(t, "https://abc.com")
+
+	links := FilterURLsBySubdomain(startURL, []*url.URL{linkA, linkB, linkC})
+	assert.Contains(t, links, linkA)
+	assert.Contains(t, links, startURL.ResolveReference(linkC))
 }
 
 func makeURLFor(t *testing.T, rawURL string) *url.URL {
