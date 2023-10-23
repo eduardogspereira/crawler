@@ -9,9 +9,6 @@ import (
 )
 
 type Crawler struct {
-	linksByTargetURLs []*LinksByTargetURL
-	errs              []error
-
 	httpClient  *http.Client
 	pageVisited map[string]bool
 	workerPool  *WorkerPool
@@ -41,7 +38,12 @@ func NewCrawler(params *CrawlerParams) *Crawler {
 	}
 }
 
-func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*LinksByTargetURL, []error) {
+func (c *Crawler) GetAllLinksFor(
+	ctx context.Context,
+	targetURL *url.URL,
+	onTargetURLProcessed func(*LinksByTargetURL),
+	onError func(error),
+) {
 	c.MarkPageAsVisited(targetURL)
 	c.workerPool.AddTask(targetURL)
 
@@ -49,13 +51,11 @@ func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*Li
 		nextTargetURL := nextTask.(*url.URL)
 		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL)
 
-		c.m.Lock()
-		defer c.m.Unlock()
 		if err != nil {
-			c.errs = append(c.errs, err)
+			onError(err)
 			return
 		}
-		c.linksByTargetURLs = append(c.linksByTargetURLs, linksForTargetURL)
+		onTargetURLProcessed(linksForTargetURL)
 
 		for _, l := range linksForTargetURL.links {
 			if ok := c.MarkPageAsVisited(l); ok {
@@ -63,8 +63,6 @@ func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*Li
 			}
 		}
 	})
-
-	return c.linksByTargetURLs, c.errs
 }
 
 type LinksByTargetURL struct {

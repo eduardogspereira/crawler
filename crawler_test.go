@@ -53,7 +53,22 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 	targetURL := makeURLFor(t, server.URL)
 
 	crawler := NewCrawler(nil)
-	linksForTargetURLs, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
+
+	var linksForTargetURLs []*LinksByTargetURL
+	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
+		m.Lock()
+		defer m.Unlock()
+		linksForTargetURLs = append(linksForTargetURLs, linksForTargetURL)
+	}
+
+	var errs []error
+	onError := func(err error) {
+		m.Lock()
+		defer m.Unlock()
+		errs = append(errs, err)
+	}
+
+	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	assert.Empty(t, errs)
 	assert.Len(t, linksForTargetURLs, 4)
@@ -96,7 +111,21 @@ func TestCrawler_GetAllLinksFor_TwoPagesSuccess(t *testing.T) {
 	targetURL := makeURLFor(t, server.URL)
 
 	crawler := NewCrawler(nil)
-	linksForTargetURLs, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
+	var linksForTargetURLs []*LinksByTargetURL
+	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
+		m.Lock()
+		defer m.Unlock()
+		linksForTargetURLs = append(linksForTargetURLs, linksForTargetURL)
+	}
+
+	var errs []error
+	onError := func(err error) {
+		m.Lock()
+		defer m.Unlock()
+		errs = append(errs, err)
+	}
+
+	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	assert.Empty(t, errs)
 	assert.Len(t, linksForTargetURLs, 3)
@@ -119,7 +148,17 @@ func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
 	targetURL := makeURLFor(t, server.URL)
 
 	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}})
-	_, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
+	var linksForTargetURLs []*LinksByTargetURL
+	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
+		linksForTargetURLs = append(linksForTargetURLs, linksForTargetURL)
+	}
+
+	var errs []error
+	onError := func(err error) {
+		errs = append(errs, err)
+	}
+
+	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	var crawlerError *CrawlerError
 	errors.As(errs[0], &crawlerError)
