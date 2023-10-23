@@ -41,6 +41,10 @@ func FilterURLsBySubdomain(domain *url.URL, links []*url.URL) []*url.URL {
 	var filteredURLs []*url.URL
 
 	for _, link := range links {
+		if link.Scheme != "" && link.Scheme != "http" && link.Scheme != "https" {
+			continue
+		}
+
 		if link.Host == "" {
 			filteredURLs = append(filteredURLs, domain.ResolveReference(link))
 			continue

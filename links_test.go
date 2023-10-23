@@ -160,6 +160,7 @@ func TestFilterURLsBySubdomain_Success(t *testing.T) {
 
 	links := FilterURLsBySubdomain(startURL, []*url.URL{linkA, linkB, linkC})
 	assert.Contains(t, links, linkA)
+	assert.NotContains(t, links, linkB)
 	assert.Contains(t, links, linkC)
 }
 
@@ -172,7 +173,25 @@ func TestFilterURLsBySubdomain_RelativeLinks_Success(t *testing.T) {
 
 	links := FilterURLsBySubdomain(startURL, []*url.URL{linkA, linkB, linkC})
 	assert.Contains(t, links, linkA)
+	assert.NotContains(t, links, linkB)
 	assert.Contains(t, links, startURL.ResolveReference(linkC))
+}
+
+func TestFilterURLsBySubdomain_RemoveNonHTTPProtocols_Success(t *testing.T) {
+	linkA := makeURLFor(t, "https://abc.com/path-a")
+	linkB := makeURLFor(t, "http://abc.com/path-b")
+	linkC := makeURLFor(t, "/path-c")
+	linkD := makeURLFor(t, "mailto:indiana-jones@abc.co")
+	linkE := makeURLFor(t, "ftp://abc.com/path-d")
+
+	startURL := makeURLFor(t, "https://abc.com")
+
+	links := FilterURLsBySubdomain(startURL, []*url.URL{linkA, linkB, linkC, linkD, linkE})
+	assert.Contains(t, links, linkA)
+	assert.Contains(t, links, linkB)
+	assert.Contains(t, links, startURL.ResolveReference(linkC))
+	assert.NotContains(t, links, linkD)
+	assert.NotContains(t, links, linkE)
 }
 
 func makeURLFor(t *testing.T, rawURL string) *url.URL {
