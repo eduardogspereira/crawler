@@ -2,21 +2,26 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
 	"time"
 )
 
 func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
+	var m sync.Mutex
 	var linkA *url.URL
 	var linkB *url.URL
 	var linkE *url.URL
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.Lock()
+		defer m.Unlock()
 		linkA = makeURLFor(t, fmt.Sprintf("http://%s/abc", r.Host))
 		linkB = makeURLFor(t, fmt.Sprintf("http://%s/bca", r.Host))
 		linkC := makeURLFor(t, "https://community.monzo.com/cab")
@@ -42,7 +47,7 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 
 	targetURL := makeURLFor(t, server.URL)
 
-	crawler := NewCrawler(http.DefaultClient)
+	crawler := NewCrawler(nil)
 	linksForTargetURLs, errorForTargetURLs := crawler.GetAllLinksFor(context.Background(), targetURL)
 
 	assert.Nil(t, errorForTargetURLs)
@@ -59,9 +64,12 @@ func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
 
 	targetURL := makeURLFor(t, server.URL)
 
-	crawler := NewCrawler(&http.Client{Timeout: time.Nanosecond})
-	_, errorForTargetURLs := crawler.GetAllLinksFor(context.Background(), targetURL)
+	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}})
+	_, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
 
-	assert.Equal(t, targetURL, errorForTargetURLs[0].targetURL)
-	assert.Error(t, errorForTargetURLs[0].err)
+	var crawlerError *CrawlerError
+	errors.As(errs[0], &crawlerError)
+
+	assert.Equal(t, targetURL, crawlerError.targetURL)
+	assert.Error(t, crawlerError)
 }

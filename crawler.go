@@ -9,57 +9,75 @@ import (
 )
 
 type Crawler struct {
-	httpClient *http.Client
+	linksByTargetURLs []*LinksByTargetURL
+	errs              []error
 
-	linksForTargetURLResult []*LinksForTargetURL
-	errorForTargetURLResult []*ErrorForTargetURL
-	pageVisited             map[string]bool
-	workerPool              *WorkerPool
-	m                       sync.Mutex
+	httpClient  *http.Client
+	pageVisited map[string]bool
+	workerPool  *WorkerPool
+	m           sync.Mutex
 }
 
-func NewCrawler(httpClient *http.Client) *Crawler {
+type CrawlerParams struct {
+	httpClient      *http.Client
+	numberOfWorkers int
+}
+
+func NewCrawler(params *CrawlerParams) *Crawler {
+	httpClient := http.DefaultClient
+	if params != nil && params.httpClient != nil {
+		httpClient = params.httpClient
+	}
+
+	numberOfWorkers := 100
+	if params != nil && params.numberOfWorkers != 0 {
+		numberOfWorkers = params.numberOfWorkers
+	}
+
 	return &Crawler{
 		httpClient:  httpClient,
 		pageVisited: make(map[string]bool),
-		workerPool:  NewWorkerPool(100), //!TODO: set number of workers as a setting
+		workerPool:  NewWorkerPool(numberOfWorkers),
 	}
 }
 
-func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*LinksForTargetURL, []*ErrorForTargetURL) {
+func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*LinksByTargetURL, []error) {
 	c.MarkPageAsVisited(targetURL)
 	c.workerPool.AddTask(targetURL)
 
 	c.workerPool.ProcessTasks(func(nextTask interface{}) {
 		nextTargetURL := nextTask.(*url.URL)
-		linksForTargetURL, errorForTargetURL := c.TaskGetLinksForURL(ctx, nextTargetURL)
+		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL)
 		c.m.Lock()
 		defer c.m.Unlock()
-		if errorForTargetURL != nil {
-			c.errorForTargetURLResult = append(c.errorForTargetURLResult, errorForTargetURL)
+		if err != nil {
+			c.errs = append(c.errs, err)
 			return
 		}
-		c.linksForTargetURLResult = append(c.linksForTargetURLResult, linksForTargetURL)
+		c.linksByTargetURLs = append(c.linksByTargetURLs, linksForTargetURL)
 	})
 
-	return c.linksForTargetURLResult, c.errorForTargetURLResult
+	return c.linksByTargetURLs, c.errs
 }
 
-type LinksForTargetURL struct {
+type LinksByTargetURL struct {
 	links     []*url.URL
 	targetURL *url.URL
 }
 
-// !TODO: verify if it makes more sense to build a struct error
-type ErrorForTargetURL struct {
-	err       error
+type CrawlerError struct {
 	targetURL *url.URL
+	err       error
 }
 
-func (c *Crawler) TaskGetLinksForURL(ctx context.Context, targetURL *url.URL) (*LinksForTargetURL, *ErrorForTargetURL) {
+func (c CrawlerError) Error() string {
+	return fmt.Sprintf("failed to extract links from %s: %s", c.targetURL.String(), c.err.Error())
+}
+
+func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) (*LinksByTargetURL, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL.String(), nil)
 	if err != nil {
-		return nil, &ErrorForTargetURL{
+		return nil, &CrawlerError{
 			err:       fmt.Errorf("failed to build request: %w", err),
 			targetURL: targetURL,
 		}
@@ -67,7 +85,7 @@ func (c *Crawler) TaskGetLinksForURL(ctx context.Context, targetURL *url.URL) (*
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, &ErrorForTargetURL{
+		return nil, &CrawlerError{
 			err:       fmt.Errorf("failed to build request: %w", err),
 			targetURL: targetURL,
 		}
@@ -75,27 +93,25 @@ func (c *Crawler) TaskGetLinksForURL(ctx context.Context, targetURL *url.URL) (*
 
 	linksForTargetURL := FilterURLsBySubdomain(targetURL, ExtractLinksFrom(response.Body))
 	for _, l := range linksForTargetURL {
-		if !c.PageAlreadyVisited(l) {
-			c.MarkPageAsVisited(l)
+		if ok := c.MarkPageAsVisited(l); ok {
 			c.workerPool.AddTask(l)
 		}
 	}
 
-	return &LinksForTargetURL{
+	return &LinksByTargetURL{
 		targetURL: targetURL,
 		links:     linksForTargetURL,
 	}, nil
 }
 
-func (c *Crawler) MarkPageAsVisited(targetURL *url.URL) {
+func (c *Crawler) MarkPageAsVisited(targetURL *url.URL) bool {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.pageVisited[targetURL.Host+targetURL.Path] = true
-}
+	_, pageAlreadyVisited := c.pageVisited[targetURL.Host+targetURL.Path]
+	if pageAlreadyVisited {
+		return false
+	}
 
-func (c *Crawler) PageAlreadyVisited(targetURL *url.URL) bool {
-	c.m.Lock()
-	defer c.m.Unlock()
-	_, exists := c.pageVisited[targetURL.Host+targetURL.Path]
-	return exists
+	c.pageVisited[targetURL.Host+targetURL.Path] = true
+	return true
 }
