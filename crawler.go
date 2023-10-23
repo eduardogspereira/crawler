@@ -9,12 +9,20 @@ import (
 
 type Crawler struct {
 	httpClient *http.Client
+
+	pageVisited map[string]bool
 }
 
 func NewCrawler(httpClient *http.Client) *Crawler {
 	return &Crawler{
-		httpClient: httpClient,
+		httpClient:  httpClient,
+		pageVisited: make(map[string]bool),
 	}
+}
+
+func (c *Crawler) GetAllLinksFor(ctx context.Context, url *url.URL) {
+	workerPool := NewWorkerPool(100) //!TODO: set number of workers as a setting
+	workerPool.AddTask(url)
 }
 
 func (c *Crawler) GetLinksFromURL(ctx context.Context, url *url.URL) ([]*url.URL, error) {
