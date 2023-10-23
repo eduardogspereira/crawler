@@ -6,21 +6,21 @@ import (
 )
 
 type WorkerPool struct {
-	tasks chan interface{}
-
+	tasks   chan interface{}
 	workers []*Worker
 }
 
 type Worker struct {
-	ID        int
-	IsWorking bool
+	id        int
+	isWorking bool
+	m         sync.Mutex
 }
 
 func NewWorkerPool(numOfWorkers int) *WorkerPool {
 	var workers []*Worker
 
 	for workerID := 0; workerID < numOfWorkers; workerID++ {
-		workers = append(workers, &Worker{ID: workerID})
+		workers = append(workers, &Worker{id: workerID})
 	}
 
 	return &WorkerPool{workers: workers, tasks: make(chan interface{}, 1_000)}
@@ -52,7 +52,7 @@ func (p *WorkerPool) ProcessTasks(processTaskFunc func(interface{})) {
 
 func (p *WorkerPool) AllTasksProcessed() bool {
 	for _, worker := range p.workers {
-		if worker.IsWorking {
+		if worker.IsWorking() {
 			return false
 		}
 	}
@@ -69,8 +69,20 @@ func (w *Worker) Work(tasks chan interface{}, processTaskFunc func(interface{}),
 			return
 		}
 
-		w.IsWorking = true
+		w.SetIsWorking(true)
 		processTaskFunc(task)
-		w.IsWorking = false
+		w.SetIsWorking(false)
 	}
+}
+
+func (w *Worker) SetIsWorking(status bool) {
+	w.m.Lock()
+	defer w.m.Unlock()
+	w.isWorking = status
+}
+
+func (w *Worker) IsWorking() bool {
+	w.m.Lock()
+	defer w.m.Unlock()
+	return w.isWorking
 }
