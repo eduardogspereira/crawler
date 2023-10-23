@@ -20,13 +20,14 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 	var linkE *url.URL
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		m.Lock()
-		defer m.Unlock()
-		linkA = makeURLFor(t, fmt.Sprintf("http://%s/abc", r.Host))
-		linkB = makeURLFor(t, fmt.Sprintf("http://%s/bca", r.Host))
-		linkC := makeURLFor(t, "https://community.monzo.com/cab")
-		linkE = makeURLFor(t, "/bca/abce/indiana/jones")
-		htmlContent := fmt.Sprintf(`
+		if r.URL.Path == "/" {
+			m.Lock()
+			defer m.Unlock()
+			linkA = makeURLFor(t, fmt.Sprintf("http://%s/abc", r.Host))
+			linkB = makeURLFor(t, fmt.Sprintf("http://%s/bca", r.Host))
+			linkC := makeURLFor(t, "https://community.monzo.com/cab")
+			linkE = makeURLFor(t, "/bca/abce/indiana/jones")
+			htmlContent := fmt.Sprintf(`
 			<a href="%s"/>
 			<!DOCTYPE html>
 			<html>
@@ -40,6 +41,53 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 			</html>
 		`, linkA, linkB, linkC, linkE)
 
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte(htmlContent))
+			assert.NoError(t, err)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	targetURL := makeURLFor(t, server.URL)
+
+	crawler := NewCrawler(nil)
+	linksForTargetURLs, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
+
+	assert.Empty(t, errs)
+	assert.Len(t, linksForTargetURLs, 4)
+	for _, linksForTargetURL := range linksForTargetURLs {
+		if linksForTargetURL.targetURL == targetURL {
+			assert.Contains(t, linksForTargetURL.links, linkA)
+			assert.Contains(t, linksForTargetURL.links, linkB)
+			assert.Contains(t, linksForTargetURL.links, targetURL.ResolveReference(linkE))
+		} else {
+			assert.Empty(t, linksForTargetURL.links)
+		}
+	}
+}
+
+func TestCrawler_GetAllLinksFor_TwoPagesSuccess(t *testing.T) {
+	var m sync.Mutex
+	var linkA *url.URL
+	var linkB *url.URL
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		m.Lock()
+		defer m.Unlock()
+
+		var htmlContent string
+		if r.URL.Path == "/" {
+			linkA = makeURLFor(t, fmt.Sprintf("http://%s/abc", r.Host))
+			htmlContent = fmt.Sprintf(`<a href="%s"/>`, linkA)
+		} else if r.URL.Path == "/abc" {
+			linkB = makeURLFor(t, fmt.Sprintf("http://%s/cba", r.Host))
+			htmlContent = fmt.Sprintf(`<a href="%s"/>`, linkB)
+		} else {
+			htmlContent = ""
+		}
+
 		w.WriteHeader(http.StatusOK)
 		_, err := w.Write([]byte(htmlContent))
 		assert.NoError(t, err)
@@ -48,13 +96,19 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 	targetURL := makeURLFor(t, server.URL)
 
 	crawler := NewCrawler(nil)
-	linksForTargetURLs, errorForTargetURLs := crawler.GetAllLinksFor(context.Background(), targetURL)
+	linksForTargetURLs, errs := crawler.GetAllLinksFor(context.Background(), targetURL)
 
-	assert.Nil(t, errorForTargetURLs)
-	assert.Len(t, linksForTargetURLs, 4)
-	assert.Contains(t, linksForTargetURLs[0].links, linkA)
-	assert.Contains(t, linksForTargetURLs[0].links, linkB)
-	assert.Contains(t, linksForTargetURLs[0].links, targetURL.ResolveReference(linkE))
+	assert.Empty(t, errs)
+	assert.Len(t, linksForTargetURLs, 3)
+	for _, linksForTargetURL := range linksForTargetURLs {
+		if linksForTargetURL.targetURL.String() == targetURL.String() {
+			assert.Contains(t, linksForTargetURL.links, linkA)
+		} else if linksForTargetURL.targetURL.String() == linkA.String() {
+			assert.Contains(t, linksForTargetURL.links, linkB)
+		} else {
+			assert.Empty(t, linksForTargetURL.links)
+		}
+	}
 }
 
 func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
