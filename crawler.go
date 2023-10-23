@@ -91,7 +91,7 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
 		return nil, &CrawlerError{
-			err:       fmt.Errorf("failed to build request: %w", err),
+			err:       fmt.Errorf("failed to make the request: %w", err),
 			targetURL: targetURL,
 		}
 	}
@@ -103,6 +103,8 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 }
 
 func (c *Crawler) MarkPageAsVisited(targetURL *url.URL) bool {
+	c.m.Lock()
+	defer c.m.Unlock()
 	_, pageAlreadyVisited := c.pageVisited[targetURL.Host+targetURL.Path]
 	if pageAlreadyVisited {
 		return false

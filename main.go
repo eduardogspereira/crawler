@@ -1,26 +1,43 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"github.com/spf13/pflag"
+	"log"
+	"net/http"
 	"net/url"
 	"time"
 )
 
 func main() {
-	//params, err := parseCommandLineFlags()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//crawlerParams := &CrawlerParams{
-	//	httpClient:      &http.Client{Timeout: params.timeout},
-	//	numberOfWorkers: params.numberOfWorkers,
-	//}
-	//crawler := NewCrawler(crawlerParams)
-	//linksByTargetURLs, errs := crawler.GetAllLinksFor(context.Background(), params.targetURL)
-	//log.Println(errs)
-	//log.Println(linksByTargetURLs)
+	params, err := parseCommandLineFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	crawlerParams := &CrawlerParams{
+		httpClient:      &http.Client{Timeout: params.timeout},
+		numberOfWorkers: params.numberOfWorkers,
+	}
+	crawler := NewCrawler(crawlerParams)
+
+	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
+		log.Printf("URL -> %s: LINKS -> %s\n", linksForTargetURL.targetURL, linksForTargetURL.links)
+	}
+
+	var errs []error
+	onError := func(err error) {
+		errs = append(errs, err)
+	}
+
+	crawler.GetAllLinksFor(context.Background(), params.targetURL, onTargetURLProcessed, onError)
+
+	if len(errs) > 0 {
+		for _, err = range errs {
+			log.Println(err)
+		}
+	}
 }
 
 type parameters struct {
