@@ -50,12 +50,12 @@ func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*Li
 		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL)
 
 		c.m.Lock()
+		defer c.m.Unlock()
 		if err != nil {
 			c.errs = append(c.errs, err)
 			return
 		}
 		c.linksByTargetURLs = append(c.linksByTargetURLs, linksForTargetURL)
-		c.m.Unlock()
 
 		for _, l := range linksForTargetURL.links {
 			if ok := c.MarkPageAsVisited(l); ok {
@@ -105,8 +105,6 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 }
 
 func (c *Crawler) MarkPageAsVisited(targetURL *url.URL) bool {
-	c.m.Lock()
-	defer c.m.Unlock()
 	_, pageAlreadyVisited := c.pageVisited[targetURL.Host+targetURL.Path]
 	if pageAlreadyVisited {
 		return false

@@ -23,7 +23,7 @@ func NewWorkerPool(numOfWorkers int) *WorkerPool {
 		workers = append(workers, &Worker{id: workerID})
 	}
 
-	return &WorkerPool{workers: workers, tasks: make(chan interface{}, 1_000)}
+	return &WorkerPool{workers: workers, tasks: make(chan interface{}, 10_000)}
 }
 
 func (p *WorkerPool) AddTask(task interface{}) {

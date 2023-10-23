@@ -3,6 +3,7 @@ module crawler
 go 1.21.3
 
 require (
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.17.0
 )
