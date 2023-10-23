@@ -8,9 +8,10 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
-func TestGetLinksFromURL_Success(t *testing.T) {
+func TestTaskGetLinksForURL_Success(t *testing.T) {
 	var linkA *url.URL
 	var linkB *url.URL
 	var linkE *url.URL
@@ -42,10 +43,40 @@ func TestGetLinksFromURL_Success(t *testing.T) {
 	requestURL := makeURLFor(t, server.URL)
 
 	crawler := NewCrawler(http.DefaultClient)
-	links, err := crawler.GetLinksFromURL(context.Background(), requestURL)
 
-	assert.NoError(t, err)
-	assert.Contains(t, links, linkA)
-	assert.Contains(t, links, linkB)
-	assert.Contains(t, links, requestURL.ResolveReference(linkE))
+	failedURLs := make(chan *url.URL)
+	linksForURLResults := make(chan *LinksForURLResult)
+
+	go crawler.TaskGetLinksForURL(context.Background(), requestURL, linksForURLResults, failedURLs)
+
+	results := <-linksForURLResults
+
+	close(failedURLs)
+	close(linksForURLResults)
+
+	assert.Contains(t, results.links, linkA)
+	assert.Contains(t, results.links, linkB)
+	assert.Contains(t, results.links, requestURL.ResolveReference(linkE))
+}
+
+func TestTaskGetLinksForURL_Timeout(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusGatewayTimeout)
+	}))
+
+	requestURL := makeURLFor(t, server.URL)
+
+	crawler := NewCrawler(&http.Client{Timeout: time.Nanosecond})
+
+	failedURLs := make(chan *url.URL)
+	linksForURLResults := make(chan *LinksForURLResult)
+
+	go crawler.TaskGetLinksForURL(context.Background(), requestURL, linksForURLResults, failedURLs)
+
+	failedURL := <-failedURLs
+
+	close(failedURLs)
+	close(linksForURLResults)
+
+	assert.Equal(t, requestURL, failedURL)
 }

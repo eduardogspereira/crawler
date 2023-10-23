@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 )
@@ -20,21 +19,33 @@ func NewCrawler(httpClient *http.Client) *Crawler {
 	}
 }
 
-func (c *Crawler) GetAllLinksFor(ctx context.Context, url *url.URL) {
+func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) {
 	workerPool := NewWorkerPool(100) //!TODO: set number of workers as a setting
-	workerPool.AddTask(url)
+	workerPool.AddTask(targetURL)
 }
 
-func (c *Crawler) GetLinksFromURL(ctx context.Context, url *url.URL) ([]*url.URL, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url.String(), nil)
+type LinksForURLResult struct {
+	links     []*url.URL
+	targetURL *url.URL
+}
+
+func (c *Crawler) TaskGetLinksForURL(ctx context.Context, targetURL *url.URL, linksForURLResults chan<- *LinksForURLResult, failedURLs chan<- *url.URL) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, targetURL.String(), nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build request: %w", err)
+		failedURLs <- targetURL
+		return
+		//return nil, fmt.Errorf("failed to build request: %w", err) //!TODO: ADD DEBUG LOG
 	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("failed to do request: %w", err)
+		failedURLs <- targetURL
+		return
+		//return nil, fmt.Errorf("failed to do request: %w", err) //!TODO: ADD DEBUG LOG
 	}
 
-	return FilterURLsBySubdomain(url, ExtractLinksFrom(response.Body)), nil
+	linksForURLResults <- &LinksForURLResult{
+		targetURL: targetURL,
+		links:     FilterURLsBySubdomain(targetURL, ExtractLinksFrom(response.Body)),
+	}
 }
