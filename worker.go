@@ -11,9 +11,9 @@ type WorkerPool struct {
 }
 
 type Worker struct {
-	id        int
-	isWorking bool
-	m         sync.Mutex
+	id             int
+	processingTask bool
+	m              sync.Mutex
 }
 
 func NewWorkerPool(numOfWorkers int) *WorkerPool {
@@ -41,7 +41,7 @@ func (p *WorkerPool) ProcessTasks(processTaskFunc func(interface{})) {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	for {
 		<-ticker.C
-		if p.AllTasksProcessed() {
+		if p.AllWorkersAreDone() {
 			close(p.tasks)
 			break
 		}
@@ -50,9 +50,9 @@ func (p *WorkerPool) ProcessTasks(processTaskFunc func(interface{})) {
 	wg.Wait()
 }
 
-func (p *WorkerPool) AllTasksProcessed() bool {
+func (p *WorkerPool) AllWorkersAreDone() bool {
 	for _, worker := range p.workers {
-		if worker.IsWorking() {
+		if worker.IsProcessingTask() {
 			return false
 		}
 	}
@@ -69,20 +69,20 @@ func (w *Worker) Work(tasks chan interface{}, processTaskFunc func(interface{}),
 			return
 		}
 
-		w.SetIsWorking(true)
+		w.SetProcessingTask(true)
 		processTaskFunc(task)
-		w.SetIsWorking(false)
+		w.SetProcessingTask(false)
 	}
 }
 
-func (w *Worker) SetIsWorking(status bool) {
+func (w *Worker) SetProcessingTask(status bool) {
 	w.m.Lock()
 	defer w.m.Unlock()
-	w.isWorking = status
+	w.processingTask = status
 }
 
-func (w *Worker) IsWorking() bool {
+func (w *Worker) IsProcessingTask() bool {
 	w.m.Lock()
 	defer w.m.Unlock()
-	return w.isWorking
+	return w.processingTask
 }
