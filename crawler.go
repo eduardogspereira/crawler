@@ -48,13 +48,20 @@ func (c *Crawler) GetAllLinksFor(ctx context.Context, targetURL *url.URL) ([]*Li
 	c.workerPool.ProcessTasks(func(nextTask interface{}) {
 		nextTargetURL := nextTask.(*url.URL)
 		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL)
+
 		c.m.Lock()
-		defer c.m.Unlock()
 		if err != nil {
 			c.errs = append(c.errs, err)
 			return
 		}
 		c.linksByTargetURLs = append(c.linksByTargetURLs, linksForTargetURL)
+		c.m.Unlock()
+
+		for _, l := range linksForTargetURL.links {
+			if ok := c.MarkPageAsVisited(l); ok {
+				c.workerPool.AddTask(l)
+			}
+		}
 	})
 
 	return c.linksByTargetURLs, c.errs
@@ -91,16 +98,9 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 		}
 	}
 
-	linksForTargetURL := FilterURLsBySubdomain(targetURL, ExtractLinksFrom(response.Body))
-	for _, l := range linksForTargetURL {
-		if ok := c.MarkPageAsVisited(l); ok {
-			c.workerPool.AddTask(l)
-		}
-	}
-
 	return &LinksByTargetURL{
 		targetURL: targetURL,
-		links:     linksForTargetURL,
+		links:     FilterURLsBySubdomain(targetURL, ExtractLinksFrom(response.Body)),
 	}, nil
 }
 
