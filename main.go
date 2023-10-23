@@ -33,10 +33,8 @@ func main() {
 
 	crawler.GetAllLinksFor(context.Background(), params.targetURL, onTargetURLProcessed, onError)
 
-	if len(errs) > 0 {
-		for _, err = range errs {
-			log.Println(err)
-		}
+	for _, err = range errs {
+		log.Println(err)
 	}
 }
 
