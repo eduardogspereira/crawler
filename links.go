@@ -35,7 +35,6 @@ func ExtractLinksFrom(htmlBody io.Reader) []*url.URL {
 			}
 		}
 	}
-
 }
 
 func FilterURLsBySubdomain(domain *url.URL, links []*url.URL) []*url.URL {

@@ -33,6 +33,26 @@ func TestExtractLinksFrom_Success(t *testing.T) {
 	assert.Contains(t, links, linkC)
 }
 
+func TestExtractLinksFrom_MalformedPage_Success(t *testing.T) {
+	linkA := makeURLFor(t, "https://a.com")
+	linkB := makeURLFor(t, "https://b.com")
+	htmlContent := fmt.Sprintf(`
+	<!DOCTYPE html>
+	<html>
+			<a href="%s"/>
+			<div>
+				<p>Unclosed <b>tag</p>
+			</div>
+		<body><a href="%s"/></body>
+	</html>
+`, linkA, linkB)
+
+	r := strings.NewReader(htmlContent)
+	links := ExtractLinksFrom(io.NopCloser(r))
+	assert.Contains(t, links, linkA)
+	assert.Contains(t, links, linkB)
+}
+
 func TestExtractLinksFrom_NoLinks_Success(t *testing.T) {
 	htmlContent := fmt.Sprintf(`
 		<!DOCTYPE html>
