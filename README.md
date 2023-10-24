@@ -11,7 +11,7 @@ Crawler built as part of Monzo Take Home Test.
 ### Building the crawler
 
 ```shell
-make build
+go build -o crawler .
 ```
 
 ### Running the crawler
@@ -27,5 +27,5 @@ pflag: help requested
 ### Running the tests
 
 ```shell
-make tests
+go test -v .
 ```
