@@ -1,9 +1,10 @@
 package main
 
 import (
-	"golang.org/x/net/html"
 	"io"
 	"net/url"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -22,16 +23,19 @@ func ExtractLinksFrom(htmlBody io.Reader) []*url.URL {
 			return links
 		case html.StartTagToken, html.SelfClosingTagToken:
 			token := tokenizer.Token()
-			if token.Data == anchorTag {
-				for _, attr := range token.Attr {
-					if attr.Key == anchorHrefProperty {
-						u, err := url.Parse(attr.Val)
-						if err != nil {
-							continue
-						}
-						links = append(links, u)
-					}
+			if token.Data != anchorTag {
+				continue
+			}
+			for _, attr := range token.Attr {
+				if attr.Key != anchorHrefProperty {
+					continue
 				}
+
+				u, err := url.Parse(attr.Val)
+				if err != nil {
+					continue
+				}
+				links = append(links, u)
 			}
 		}
 	}

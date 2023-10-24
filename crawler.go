@@ -47,10 +47,8 @@ func (c *Crawler) GetAllLinksFor(
 	c.MarkPageAsVisited(targetURL)
 	c.workerPool.AddTask(targetURL)
 
-	c.workerPool.ProcessTasks(func(nextTask interface{}) {
-		nextTargetURL := nextTask.(*url.URL)
-		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL)
-
+	c.workerPool.ProcessTasks(func(nextTargetURL interface{}) {
+		linksForTargetURL, err := c.GetLinksForTargetURL(ctx, nextTargetURL.(*url.URL))
 		if err != nil {
 			onError(err)
 			return
