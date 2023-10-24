@@ -52,7 +52,7 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 
 	targetURL := makeURLFor(t, server.URL)
 
-	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100})
+	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
 
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
@@ -110,7 +110,7 @@ func TestCrawler_GetAllLinksFor_TwoPagesSuccess(t *testing.T) {
 
 	targetURL := makeURLFor(t, server.URL)
 
-	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100})
+	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
 		m.Lock()
@@ -147,7 +147,7 @@ func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
 
 	targetURL := makeURLFor(t, server.URL)
 
-	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}, numberOfWorkers: 100})
+	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}, numberOfWorkers: 100, retryAttempts: 1})
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
 		linksForTargetURLs = append(linksForTargetURLs, linksForTargetURL)

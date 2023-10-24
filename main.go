@@ -19,6 +19,7 @@ func main() {
 	crawlerParams := &CrawlerParams{
 		httpClient:      &http.Client{Timeout: params.timeout},
 		numberOfWorkers: params.numberOfWorkers,
+		retryAttempts:   params.numberOfRetries,
 	}
 	crawler := NewCrawler(crawlerParams)
 
@@ -42,12 +43,14 @@ type parameters struct {
 	numberOfWorkers int
 	timeout         time.Duration
 	targetURL       *url.URL
+	numberOfRetries uint
 }
 
 func parseCommandLineFlags() (*parameters, error) {
 	workers := pflag.IntP("workers", "w", 100, "Number of workers")
 	timeout := pflag.IntP("timeout", "t", 30, "HTTP timeout (seconds)")
 	targetURL := pflag.StringP("url", "u", "", "Target URL")
+	retries := pflag.UintP("retries", "r", 3, "Number of task retries")
 
 	pflag.Parse()
 
@@ -64,5 +67,6 @@ func parseCommandLineFlags() (*parameters, error) {
 		targetURL:       u,
 		timeout:         time.Duration(*timeout) * time.Second,
 		numberOfWorkers: *workers,
+		numberOfRetries: *retries,
 	}, nil
 }

@@ -3,28 +3,32 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/avast/retry-go/v4"
 	"net/http"
 	"net/url"
 	"sync"
 )
 
 type Crawler struct {
-	httpClient  *http.Client
-	pageVisited map[string]bool
-	workerPool  *WorkerPool
-	m           sync.Mutex
+	httpClient    *http.Client
+	pageVisited   map[string]bool
+	workerPool    *WorkerPool
+	m             sync.Mutex
+	retryAttempts uint
 }
 
 type CrawlerParams struct {
 	httpClient      *http.Client
 	numberOfWorkers int
+	retryAttempts   uint
 }
 
 func NewCrawler(params *CrawlerParams) *Crawler {
 	return &Crawler{
-		httpClient:  params.httpClient,
-		pageVisited: make(map[string]bool),
-		workerPool:  NewWorkerPool(params.numberOfWorkers),
+		httpClient:    params.httpClient,
+		pageVisited:   make(map[string]bool),
+		workerPool:    NewWorkerPool(params.numberOfWorkers),
+		retryAttempts: params.retryAttempts,
 	}
 }
 
@@ -76,7 +80,11 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 		}
 	}
 
-	response, err := c.httpClient.Do(request)
+	var response *http.Response
+	err = retry.Do(func() error {
+		response, err = c.httpClient.Do(request)
+		return err
+	}, retry.Context(ctx), retry.Attempts(c.retryAttempts), retry.LastErrorOnly(true))
 	if err != nil {
 		return nil, &CrawlerError{
 			err:       fmt.Errorf("failed to make the request: %w", err),
