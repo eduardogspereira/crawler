@@ -11,16 +11,14 @@ type WorkerPool struct {
 }
 
 type Worker struct {
-	id             int
 	processingTask bool
 	m              sync.Mutex
 }
 
 func NewWorkerPool(numOfWorkers int) *WorkerPool {
 	var workers []*Worker
-
-	for workerID := 0; workerID < numOfWorkers; workerID++ {
-		workers = append(workers, &Worker{id: workerID})
+	for i := 0; i < numOfWorkers; i++ {
+		workers = append(workers, &Worker{})
 	}
 
 	return &WorkerPool{workers: workers, tasks: make(chan interface{}, 10_000)}
@@ -43,6 +41,7 @@ func (p *WorkerPool) ProcessTasks(processTaskFunc func(interface{})) {
 		<-ticker.C
 		if p.AllWorkersAreDone() {
 			close(p.tasks)
+			ticker.Stop()
 			break
 		}
 	}

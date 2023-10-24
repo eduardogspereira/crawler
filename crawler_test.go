@@ -17,7 +17,7 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 	var m sync.Mutex
 	var linkA *url.URL
 	var linkB *url.URL
-	var linkE *url.URL
+	var linkC *url.URL
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
@@ -25,8 +25,7 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 			defer m.Unlock()
 			linkA = makeURLFor(t, fmt.Sprintf("http://%s/abc", r.Host))
 			linkB = makeURLFor(t, fmt.Sprintf("http://%s/bca", r.Host))
-			linkC := makeURLFor(t, "https://community.monzo.com/cab")
-			linkE = makeURLFor(t, "/bca/abce/indiana/jones")
+			linkC = makeURLFor(t, "/bca/abce/indiana/jones")
 			htmlContent := fmt.Sprintf(`
 			<a href="%s"/>
 			<!DOCTYPE html>
@@ -35,11 +34,11 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 						<div><a href="%s"/></div>
 					</div>
 				<body>
-					<a href="%s"/>
+					<a href="https://community.monzo.com/cab"/>
 				</body>
 				<a href="%s"/>
 			</html>
-		`, linkA, linkB, linkC, linkE)
+		`, linkA, linkB, linkC)
 
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(htmlContent))
@@ -49,10 +48,6 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 
 		w.WriteHeader(http.StatusNotFound)
 	}))
-
-	targetURL := makeURLFor(t, server.URL)
-
-	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
 
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
@@ -68,6 +63,8 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 		errs = append(errs, err)
 	}
 
+	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
+	targetURL := makeURLFor(t, server.URL)
 	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	assert.Empty(t, errs)
@@ -76,7 +73,7 @@ func TestCrawler_GetAllLinksFor_Success(t *testing.T) {
 		if linksForTargetURL.targetURL == targetURL {
 			assert.Contains(t, linksForTargetURL.links, linkA)
 			assert.Contains(t, linksForTargetURL.links, linkB)
-			assert.Contains(t, linksForTargetURL.links, targetURL.ResolveReference(linkE))
+			assert.Contains(t, linksForTargetURL.links, targetURL.ResolveReference(linkC))
 		} else {
 			assert.Empty(t, linksForTargetURL.links)
 		}
@@ -108,9 +105,6 @@ func TestCrawler_GetAllLinksFor_TwoPagesSuccess(t *testing.T) {
 		assert.NoError(t, err)
 	}))
 
-	targetURL := makeURLFor(t, server.URL)
-
-	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
 		m.Lock()
@@ -125,6 +119,8 @@ func TestCrawler_GetAllLinksFor_TwoPagesSuccess(t *testing.T) {
 		errs = append(errs, err)
 	}
 
+	crawler := NewCrawler(&CrawlerParams{httpClient: http.DefaultClient, numberOfWorkers: 100, retryAttempts: 1})
+	targetURL := makeURLFor(t, server.URL)
 	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	assert.Empty(t, errs)
@@ -145,9 +141,6 @@ func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
 		w.WriteHeader(http.StatusGatewayTimeout)
 	}))
 
-	targetURL := makeURLFor(t, server.URL)
-
-	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}, numberOfWorkers: 100, retryAttempts: 1})
 	var linksForTargetURLs []*LinksByTargetURL
 	onTargetURLProcessed := func(linksForTargetURL *LinksByTargetURL) {
 		linksForTargetURLs = append(linksForTargetURLs, linksForTargetURL)
@@ -158,6 +151,8 @@ func TestCrawler_GetAllLinksFor_Timeout(t *testing.T) {
 		errs = append(errs, err)
 	}
 
+	crawler := NewCrawler(&CrawlerParams{httpClient: &http.Client{Timeout: time.Nanosecond}, numberOfWorkers: 100, retryAttempts: 1})
+	targetURL := makeURLFor(t, server.URL)
 	crawler.GetAllLinksFor(context.Background(), targetURL, onTargetURLProcessed, onError)
 
 	var crawlerError *CrawlerError

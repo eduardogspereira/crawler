@@ -21,7 +21,7 @@ func TestWorkerPool_Success(t *testing.T) {
 		m.Lock()
 		results = append(results, result)
 		m.Unlock()
-		if result == "ee" {
+		if result == "ee" || result == "cc" {
 			workerPool.AddTask(result)
 		}
 	}
@@ -30,6 +30,7 @@ func TestWorkerPool_Success(t *testing.T) {
 	assert.Contains(t, results, "aa")
 	assert.Contains(t, results, "bb")
 	assert.Contains(t, results, "cc")
+	assert.Contains(t, results, "cccc")
 	assert.Contains(t, results, "dd")
 	assert.Contains(t, results, "ee")
 	assert.Contains(t, results, "eeee")

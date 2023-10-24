@@ -92,6 +92,9 @@ func (c *Crawler) GetLinksForTargetURL(ctx context.Context, targetURL *url.URL) 
 		}
 	}
 
+	// I decided to not check if the Status Code from the response is in the range of
+	// 2XX as some pages return links even when the response is not success (e.g. https://monzo.com/non-existent-page/)
+
 	return &LinksByTargetURL{
 		targetURL: targetURL,
 		links:     FilterURLsBySubdomain(targetURL, ExtractLinksFrom(response.Body)),
