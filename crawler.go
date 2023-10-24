@@ -21,20 +21,10 @@ type CrawlerParams struct {
 }
 
 func NewCrawler(params *CrawlerParams) *Crawler {
-	httpClient := http.DefaultClient
-	if params != nil && params.httpClient != nil {
-		httpClient = params.httpClient
-	}
-
-	numberOfWorkers := 100
-	if params != nil && params.numberOfWorkers != 0 {
-		numberOfWorkers = params.numberOfWorkers
-	}
-
 	return &Crawler{
-		httpClient:  httpClient,
+		httpClient:  params.httpClient,
 		pageVisited: make(map[string]bool),
-		workerPool:  NewWorkerPool(numberOfWorkers),
+		workerPool:  NewWorkerPool(params.numberOfWorkers),
 	}
 }
 
