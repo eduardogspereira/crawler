@@ -1,8 +1,6 @@
-<img src="https://avatars.githubusercontent.com/u/11029372?s=200&v=4" width="127px" height="127px" align="left"/>
-
 # Crawler
 
-Crawler built as part of Monzo Take Home Test.
+Playing around with Go.
 
 ### Dependencies
 
